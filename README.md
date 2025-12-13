@@ -1,8 +1,9 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.2.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/bash-5.0%2B-orange.svg" alt="Bash">
   <img src="https://img.shields.io/badge/homebrew-tap-FBB040.svg" alt="Homebrew">
+  <img src="https://img.shields.io/badge/tests-68%20passing-brightgreen.svg" alt="Tests">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 </p>
 
@@ -80,7 +81,7 @@ cd gga
 
 ```bash
 gga version
-# Output: gga v2.1.0
+# Output: gga v2.2.0
 ```
 
 ---
@@ -117,7 +118,7 @@ $ cd ~/projects/my-react-app
 $ gga init
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Gentleman Guardian Angel v2.1.0
+  Gentleman Guardian Angel v2.2.0
   Provider-agnostic code review using AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -179,7 +180,7 @@ EOF
 $ gga install
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Gentleman Guardian Angel v2.1.0
+  Gentleman Guardian Angel v2.2.0
   Provider-agnostic code review using AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -193,7 +194,7 @@ $ git add src/components/Button.tsx
 $ git commit -m "feat: add new button component"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Gentleman Guardian Angel v2.1.0
+  Gentleman Guardian Angel v2.2.0
   Provider-agnostic code review using AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -235,7 +236,7 @@ $ git add src/components/Button.tsx
 $ git commit -m "feat: add new button component"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Gentleman Guardian Angel v2.1.0
+  Gentleman Guardian Angel v2.2.0
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ℹ️  Provider: claude
@@ -927,19 +928,55 @@ EXCLUDE_PATTERNS="*.min.js,*.bundle.js,dist/*,build/*,*.generated.ts"
 
 ---
 
+## 🧪 Development
+
+### Running Tests
+
+GGA uses [ShellSpec](https://shellspec.info/) for testing.
+
+```bash
+# Install ShellSpec (once)
+brew install shellspec
+
+# Run all tests
+make test
+
+# Run specific test suites
+make test-unit        # Unit tests only
+make test-integration # Integration tests only
+
+# Lint shell scripts
+make lint
+
+# Run all checks before commit
+make check
+```
+
+### Test Coverage
+
+- **68 tests** covering core functionality
+- Unit tests for `cache.sh` and `providers.sh`
+- Integration tests for all CLI commands
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Some ideas:
 
 - [ ] Add more providers (Copilot, Codeium, etc.)
 - [ ] Support for `.gga.yaml` format  
-- [ ] Caching to avoid re-reviewing unchanged files
+- [x] ~~Caching to avoid re-reviewing unchanged files~~ ✅ Done in v2.1.0
 - [ ] GitHub Action version
 - [ ] Output formats (JSON, SARIF for IDE integration)
 
 ```bash
 # Fork, clone, and submit PRs!
 git clone https://github.com/Gentleman-Programming/gentleman-guardian-angel.git
+cd gentleman-guardian-angel
+
+# Run tests before submitting
+make check
 ```
 
 ---
