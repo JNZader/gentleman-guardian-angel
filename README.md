@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.6.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.6.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/bash-5.0%2B-orange.svg" alt="Bash">
   <img src="https://img.shields.io/badge/homebrew-tap-FBB040.svg" alt="Homebrew">
-  <img src="https://img.shields.io/badge/tests-147%20passing-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-161%20passing-brightgreen.svg" alt="Tests">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 </p>
 
@@ -83,7 +83,7 @@ cd gga
 
 ```bash
 gga version
-# Output: gga v2.6.0
+# Output: gga v2.6.1
 ```
 
 ---
@@ -1150,7 +1150,16 @@ shellspec spec/unit/my_feature_spec.sh
 
 ## 📋 Changelog
 
-### v2.6.0 (Latest)
+### v2.6.1 (Latest)
+
+- ✅ **fix**: Relaxed STATUS parsing to handle AI preamble text (#18, PR #19)
+  - Search for STATUS in first 15 lines instead of requiring line 1
+  - Accept markdown formatting (`**STATUS: PASSED**`)
+  - Works with AI agents that have system-wide instruction files (AGENTS.md, CLAUDE.md)
+- ✅ **14 new tests** for STATUS parsing edge cases
+- ✅ **161 tests** total
+
+### v2.6.0
 
 - ✅ **feat**: Commit message validation support (PR #17, based on #11 by @ramarivera)
   - `gga install --commit-msg` installs commit-msg hook instead of pre-commit
