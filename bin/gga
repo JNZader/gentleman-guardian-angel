@@ -1308,8 +1308,8 @@ cmd_run() {
 # ============================================================================
 
 get_staged_files() {
-  local patterns="$1"
-  local excludes="$2"
+  local file_patterns="$1"
+  local file_excludes="$2"
 
   # Get all staged files (added, copied, modified)
   local staged
@@ -1320,8 +1320,8 @@ get_staged_files() {
   fi
 
   # Convert comma-separated patterns to array
-  IFS=',' read -ra PATTERN_ARRAY <<< "$patterns"
-  IFS=',' read -ra EXCLUDE_ARRAY <<< "$excludes"
+  IFS=',' read -ra PATTERN_ARRAY <<< "$file_patterns"
+  IFS=',' read -ra EXCLUDE_ARRAY <<< "$file_excludes"
 
   # Filter files
   echo "$staged" | while IFS= read -r file; do
@@ -1378,8 +1378,8 @@ get_staged_files() {
 }
 
 get_ci_files() {
-  local patterns="$1"
-  local excludes="$2"
+  local file_patterns="$1"
+  local file_excludes="$2"
 
   # Get files changed in the last commit (for CI environments)
   local changed
@@ -1390,8 +1390,8 @@ get_ci_files() {
   fi
 
   # Convert comma-separated patterns to array
-  IFS=',' read -ra PATTERN_ARRAY <<< "$patterns"
-  IFS=',' read -ra EXCLUDE_ARRAY <<< "$excludes"
+  IFS=',' read -ra PATTERN_ARRAY <<< "$file_patterns"
+  IFS=',' read -ra EXCLUDE_ARRAY <<< "$file_excludes"
 
   # Filter files (same logic as get_staged_files)
   echo "$changed" | while IFS= read -r file; do
