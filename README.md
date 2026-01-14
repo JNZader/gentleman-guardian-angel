@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.6.1-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.10.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/bash-5.0%2B-orange.svg" alt="Bash">
   <img src="https://img.shields.io/badge/homebrew-tap-FBB040.svg" alt="Homebrew">
-  <img src="https://img.shields.io/badge/tests-161%20passing-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-367%20passing-brightgreen.svg" alt="Tests">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 </p>
 
@@ -22,6 +22,7 @@
   <a href="#-commands">Commands</a> •
   <a href="#-configuration">Configuration</a> •
   <a href="#-smart-caching">Caching</a> •
+  <a href="#-intelligent-features">AI Features</a> •
   <a href="#-development">Development</a>
 </p>
 
@@ -53,6 +54,9 @@ You have coding standards. Your team ignores them. Code reviews catch issues too
 - 🚨 **Strict mode** - Fail CI on ambiguous responses
 - ⚡ **Smart caching** - Skip unchanged files for faster reviews
 - 🍺 **Homebrew ready** - One command install
+- 🗄️ **Review history** - SQLite storage with full-text search
+- 🧠 **RAG-powered** - Context-aware reviews using historical data
+- 🔮 **Predictive analysis** - Hebbian memory learns your codebase patterns
 
 ---
 
@@ -273,6 +277,12 @@ All files comply with the coding standards defined in AGENTS.md.
 | `run`                  | Run code review on staged files                      | `gga run`                  |
 | `run --ci`             | Run code review on last commit (for CI/CD)           | `gga run --ci`             |
 | `run --no-cache`       | Run review ignoring cache                            | `gga run --no-cache`       |
+| `run --no-rag`         | Run review without historical context                | `gga run --no-rag`         |
+| `ask`                  | Ask questions about your review history (RAG)        | `gga ask "common issues?"` |
+| `history`              | Show review history                                  | `gga history --limit 10`   |
+| `search`               | Full-text search past reviews                        | `gga search "sql injection"` |
+| `predict`              | Predict issues using Hebbian memory                  | `gga predict src/auth.ts`  |
+| `memory`               | Manage Hebbian memory network                        | `gga memory stats`         |
 | `config`               | Display current configuration and status             | `gga config`               |
 | `cache status`         | Show cache status for current project                | `gga cache status`         |
 | `cache clear`          | Clear cache for current project                      | `gga cache clear`          |
@@ -434,6 +444,105 @@ gga run --no-cache
 └── <project-hash-2>/
     └── ...
 ```
+
+---
+
+## 🧠 Intelligent Features
+
+GGA includes advanced AI features that learn from your codebase and review history.
+
+> 📚 **Detailed Documentation:**
+> - [Context-Aware Reviews](docs/features/01-context-aware-reviews.md) - How RAG and Hebbian work together
+> - [Internal Architecture](docs/features/02-internal-architecture.md) - Technical deep-dive for contributors
+> - [Debug Tools](docs/features/03-debug-tools.md) - Power user commands for inspection
+
+### Review History (SQLite + FTS5)
+
+All reviews are stored locally with full-text search capabilities:
+
+```bash
+# View recent reviews
+gga history
+gga history --limit 20
+
+# Search past reviews
+gga search "authentication"
+gga search "sql injection"
+
+# Filter by status
+gga history --status FAILED
+```
+
+**Storage location:** `~/.gga/gga.db`
+
+### RAG (Retrieval Augmented Generation)
+
+Reviews are automatically enhanced with relevant historical context:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        RAG Pipeline                              │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Extract patterns from staged files                          │
+│     └─► Authentication, API, Security, Database patterns        │
+│                                                                  │
+│  2. Search similar past reviews (semantic + keyword)            │
+│     └─► Find reviews with similar code patterns                 │
+│                                                                  │
+│  3. Augment prompt with historical context                      │
+│     └─► "In the past, this pattern caused issues..."            │
+│                                                                  │
+│  4. AI review with full context                                 │
+│     └─► More accurate, consistent reviews                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+```bash
+# Ask questions about your codebase history
+gga ask "What are the most common issues in authentication code?"
+gga ask "How did we solve the SQL injection problem before?"
+
+# Disable RAG for a single review
+gga run --no-rag
+```
+
+**Configuration:**
+```bash
+# Environment variables
+GGA_RAG_ENABLED=true          # Enable/disable RAG (default: true)
+GGA_RAG_CONTEXT_LIMIT=5       # Max historical reviews to include
+GGA_RAG_MIN_SIMILARITY=0.3    # Minimum similarity threshold
+```
+
+### Hebbian Memory (Predictive Analysis)
+
+GGA learns associations between file patterns and issues using Hebbian learning ("neurons that fire together, wire together"):
+
+```bash
+# Predict potential issues for a file
+gga predict src/auth/login.ts
+
+# Example output:
+# Predictions for src/auth/login.ts:
+#   - authentication (85% confidence)
+#   - input_validation (72% confidence)
+#   - error_handling (68% confidence)
+
+# View learned associations
+gga memory show
+
+# Memory statistics
+gga memory stats
+
+# Retrain memory from history
+gga memory train
+```
+
+**How it works:**
+1. After each review, GGA extracts patterns (file paths, issues found)
+2. Associations are strengthened: `auth/*.ts` → `authentication issues`
+3. Over time, GGA can predict likely issues before sending to AI
+4. Predictions help focus reviews and catch patterns humans miss
 
 ---
 
@@ -1088,14 +1197,25 @@ gentleman-guardian-angel/
 │   └── gga                    # Main CLI script
 ├── lib/
 │   ├── providers.sh           # AI provider implementations
-│   └── cache.sh               # Smart caching logic
+│   ├── cache.sh               # Smart caching logic
+│   ├── sqlite.sh              # SQLite persistence + FTS5
+│   ├── embeddings.sh          # Multi-provider embeddings
+│   ├── semantic.sh            # Hybrid semantic search
+│   ├── rag.sh                 # RAG pipeline
+│   ├── hebbiana.sh            # Hebbian memory network
+│   └── config.sh              # Configuration management
 ├── spec/                      # ShellSpec test suite
 │   ├── spec_helper.sh         # Test setup and helpers
 │   ├── unit/
-│   │   ├── cache_spec.sh      # Cache unit tests (27 tests)
-│   │   └── providers_spec.sh  # Provider unit tests (13 tests)
+│   │   ├── cache_spec.sh      # Cache unit tests
+│   │   ├── sqlite_spec.sh     # SQLite/FTS5 tests
+│   │   ├── embeddings_spec.sh # Embeddings tests
+│   │   ├── semantic_spec.sh   # Semantic search tests
+│   │   ├── rag_spec.sh        # RAG pipeline tests
+│   │   ├── hebbiana_spec.sh   # Hebbian memory tests
+│   │   └── providers_spec.sh  # Provider unit tests
 │   └── integration/
-│       └── commands_spec.sh   # CLI integration tests (28 tests)
+│       └── commands_spec.sh   # CLI integration tests
 ├── Makefile                   # Development commands
 ├── .shellspec                 # Test runner config
 ├── install.sh                 # Manual installer
@@ -1130,11 +1250,16 @@ make check
 | Module             | Tests   | Description                                             |
 | ------------------ | ------- | ------------------------------------------------------- |
 | `cache.sh`         | 27      | Hash functions, cache validation, file caching          |
+| `sqlite.sh`        | 46      | CRUD operations, FTS5 search, statistics                |
+| `embeddings.sh`    | 32      | Multi-provider embeddings, similarity scoring           |
+| `semantic.sh`      | 28      | Hybrid search, BM25, vector similarity                  |
+| `rag.sh`           | 22      | Pattern extraction, context building, augmentation      |
+| `hebbiana.sh`      | 35      | Hebbian learning, predictions, memory management        |
 | `providers.sh`     | 49      | All providers, routing, validation, security            |
 | CLI commands       | 34      | init, install, uninstall, run, run --ci, config, cache  |
 | Ollama integration | 12      | Real Ollama tests (local only, requires `qwen2.5:0.5b`) |
 | OpenCode           | 8       | OpenCode provider tests                                 |
-| **Total**          | **147** | Full coverage of core functionality                     |
+| **Total**          | **367** | Full coverage of core functionality                     |
 
 ### Adding New Tests
 
@@ -1150,7 +1275,32 @@ shellspec spec/unit/my_feature_spec.sh
 
 ## 📋 Changelog
 
-### v2.6.1 (Latest)
+### v2.10.0 (Latest)
+
+- ✅ **feat(sqlite)**: SQLite persistence with FTS5 full-text search
+  - Review history stored locally (`~/.gga/gga.db`)
+  - `gga history` to view past reviews
+  - `gga search <query>` for full-text search
+- ✅ **feat(semantic)**: Multi-provider embeddings and hybrid search
+  - Support for Ollama, OpenAI, and keyword-based embeddings
+  - BM25 + vector similarity for accurate retrieval
+- ✅ **feat(rag)**: RAG pipeline for context-aware reviews
+  - Automatic pattern extraction (auth, API, security, etc.)
+  - Historical context augmentation
+  - `gga ask <question>` to query review history
+  - `--no-rag` flag to disable
+- ✅ **feat(hebbiana)**: Hebbian memory for predictive analysis
+  - Learns file pattern → issue associations
+  - `gga predict <file>` for issue predictions
+  - `gga memory` commands for memory management
+- ✅ **fix**: SQL injection protection in sqlite.sh and hebbiana.sh
+- ✅ **fix**: Variable scope issues with local keyword
+- ✅ **refactor**: Deduplicated file filtering logic
+- ✅ **perf**: Hash command caching at module load
+- ✅ **i18n**: All messages now in English
+- ✅ **367 tests** (+206 new tests, +128% coverage)
+
+### v2.6.1
 
 - ✅ **fix**: Relaxed STATUS parsing to handle AI preamble text (#18, PR #19)
   - Search for STATUS in first 15 lines instead of requiring line 1
@@ -1243,6 +1393,9 @@ Contributions are welcome! Some ideas:
 - [x] ~~Add test suite~~ ✅ Done in v2.2.0
 - [x] ~~CI mode for GitHub Actions/GitLab~~ ✅ Done in v2.4.0
 - [x] ~~OpenCode provider~~ ✅ Done in v2.5.0 (by @ramarivera)
+- [x] ~~Review history persistence~~ ✅ Done in v2.10.0 (SQLite + FTS5)
+- [x] ~~RAG for context-aware reviews~~ ✅ Done in v2.10.0
+- [x] ~~Predictive analysis~~ ✅ Done in v2.10.0 (Hebbian memory)
 - [ ] GitHub Action version
 - [ ] Output formats (JSON, SARIF for IDE integration)
 
