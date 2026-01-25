@@ -157,12 +157,12 @@ execute_claude() {
 execute_gemini() {
   local prompt="$1"
 
-  # Gemini CLI requires prompt as argument or via -p flag
-  # Using -p flag for explicit prompt passing
+  # Gemini CLI in headless mode
+  # Using stdin to pass prompt (avoids ARG_MAX limits for large prompts)
   # --yolo flag auto-approves all tool calls (required for CI/non-interactive)
   # See: https://geminicli.com/docs/cli/headless/
-  gemini -p "$prompt" --yolo 2>&1
-  return $?
+  printf '%s' "$prompt" | gemini --yolo 2>&1
+  return "${PIPESTATUS[1]}"
 }
 
 execute_codex() {
