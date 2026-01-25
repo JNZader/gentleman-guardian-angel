@@ -156,11 +156,12 @@ execute_claude() {
 
 execute_gemini() {
   local prompt="$1"
-  
+
   # Gemini CLI requires prompt as argument or via -p flag
   # Using -p flag for explicit prompt passing
-  # Note: In CI/non-interactive environments, --yolo may be needed for auto-approval
-  gemini -p "$prompt" 2>&1
+  # --yolo flag auto-approves all tool calls (required for CI/non-interactive)
+  # See: https://geminicli.com/docs/cli/headless/
+  gemini -p "$prompt" --yolo 2>&1
   return $?
 }
 
