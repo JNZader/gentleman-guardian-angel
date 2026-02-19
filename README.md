@@ -11,7 +11,7 @@
 
 <p align="center">
   <strong>Provider-agnostic code review using AI</strong><br>
-  Use Claude, Gemini, Codex, OpenCode, Ollama, or any AI to enforce your coding standards.<br>
+  Use Claude, Gemini, Codex, OpenCode, Ollama, LM Studio, GitHub Models, or any AI to enforce your coding standards.<br>
   Zero dependencies. Pure Bash. Works everywhere.
 </p>
 
@@ -53,6 +53,8 @@ You have coding standards. Your team ignores them. Code reviews catch issues too
 - ⚙️ **Highly configurable** - File patterns, exclusions, custom rules
 - 🚨 **Strict mode** - Fail CI on ambiguous responses
 - ⚡ **Smart caching** - Skip unchanged files for faster reviews
+- ⏱️ **Timeout & progress** - Configurable timeout with visual spinner
+- 🔍 **PR review mode** - Review full PRs, not just last commit
 - 🍺 **Homebrew ready** - One command install
 - 🗄️ **Review history** - SQLite storage with full-text search
 - 🧠 **RAG-powered** - Context-aware reviews using historical data
@@ -87,7 +89,7 @@ cd gga
 
 ```bash
 gga version
-# Output: gga v2.6.1
+# Output: gga v2.7.0
 ```
 
 ---
@@ -276,6 +278,8 @@ All files comply with the coding standards defined in AGENTS.md.
 | `uninstall`            | Remove git hooks from current repo                   | `gga uninstall`            |
 | `run`                  | Run code review on staged files                      | `gga run`                  |
 | `run --ci`             | Run code review on last commit (for CI/CD)           | `gga run --ci`             |
+| `run --pr-mode`        | Review all files changed in the full PR              | `gga run --pr-mode`        |
+| `run --pr-mode --diff-only` | PR review with diffs only (faster, cheaper)     | `gga run --pr-mode --diff-only` |
 | `run --no-cache`       | Run review ignoring cache                            | `gga run --no-cache`       |
 | `run --no-rag`         | Run review without historical context                | `gga run --no-rag`         |
 | `ask`                  | Ask questions about your review history (RAG)        | `gga ask "common issues?"` |
@@ -364,6 +368,8 @@ Values:
   EXCLUDE_PATTERNS:  *.test.ts,*.spec.ts
   RULES_FILE:        AGENTS.md
   STRICT_MODE:       true
+  TIMEOUT:           300s
+  PR_BASE_BRANCH:    auto-detect
 
 Rules File: Found
 ```
@@ -550,13 +556,15 @@ gga memory train
 
 Use whichever AI CLI you have installed:
 
-| Provider     | Config Value     | CLI Command Used                  | Installation                                                                       |
-| ------------ | ---------------- | --------------------------------- | ---------------------------------------------------------------------------------- |
-| **Claude**   | `claude`         | `echo "prompt" \| claude --print` | [claude.ai/code](https://claude.ai/code)                                           |
-| **Gemini**   | `gemini`         | `echo "prompt" \| gemini`         | [github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
-| **Codex**    | `codex`          | `codex exec "prompt"`             | `npm i -g @openai/codex`                                                           |
-| **OpenCode** | `opencode`       | `echo "prompt" \| opencode run`   | [opencode.ai](https://opencode.ai)                                                 |
-| **Ollama**   | `ollama:<model>` | `ollama run <model> "prompt"`     | [ollama.ai](https://ollama.ai)                                                     |
+| Provider          | Config Value       | CLI Command Used                  | Installation                                                                       |
+| ----------------- | ------------------ | --------------------------------- | ---------------------------------------------------------------------------------- |
+| **Claude**        | `claude`           | `echo "prompt" \| claude --print` | [claude.ai/code](https://claude.ai/code)                                           |
+| **Gemini**        | `gemini`           | `echo "prompt" \| gemini`         | [github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
+| **Codex**         | `codex`            | `codex exec "prompt"`             | `npm i -g @openai/codex`                                                           |
+| **OpenCode**      | `opencode`         | `echo "prompt" \| opencode run`   | [opencode.ai](https://opencode.ai)                                                 |
+| **Ollama**        | `ollama:<model>`   | `ollama run <model> "prompt"`     | [ollama.ai](https://ollama.ai)                                                     |
+| **LM Studio**     | `lmstudio[:model]` | HTTP API call to local server     | [lmstudio.ai](https://lmstudio.ai)                                                 |
+| **GitHub Models** | `github:<model>`   | HTTP API via `gh auth token`      | [github.com/marketplace/models](https://github.com/marketplace/models)              |
 
 ### Provider Examples
 
@@ -587,6 +595,22 @@ PROVIDER="ollama:qwen2.5-coder"
 
 # Use Ollama with DeepSeek Coder
 PROVIDER="ollama:deepseek-coder"
+
+# Use LM Studio with default model
+PROVIDER="lmstudio"
+
+# Use LM Studio with specific model
+PROVIDER="lmstudio:llama-3.2-3b-instruct"
+
+# Use LM Studio with custom host
+LMSTUDIO_HOST="http://localhost:8080/v1"
+PROVIDER="lmstudio"
+
+# Use GitHub Models (requires: gh auth login)
+PROVIDER="github:gpt-4o"
+PROVIDER="github:gpt-4.1"
+PROVIDER="github:deepseek-r1"
+PROVIDER="github:grok-3"
 ```
 
 ---
@@ -599,7 +623,7 @@ Create this file in your project root:
 
 ```bash
 # AI Provider (required)
-# Options: claude, gemini, codex, ollama:<model>
+# Options: claude, gemini, codex, opencode, ollama:<model>, lmstudio[:model], github:<model>
 PROVIDER="claude"
 
 # File patterns to review (comma-separated globs)
@@ -617,6 +641,13 @@ RULES_FILE="AGENTS.md"
 # Fail if AI response is ambiguous (recommended for CI)
 # Default: true
 STRICT_MODE="true"
+
+# Timeout in seconds for AI provider response
+# Default: 300 (5 minutes)
+TIMEOUT="300"
+
+# Base branch for --pr-mode (auto-detects main/master/develop if empty)
+# PR_BASE_BRANCH="main"
 ```
 
 ### Configuration Options
@@ -628,10 +659,12 @@ STRICT_MODE="true"
 | `EXCLUDE_PATTERNS` | No       | -           | Comma-separated file patterns to exclude |
 | `RULES_FILE`       | No       | `AGENTS.md` | Path to your coding standards file       |
 | `STRICT_MODE`      | No       | `true`      | Fail on ambiguous AI responses           |
+| `TIMEOUT`          | No       | `300`       | Max seconds to wait for AI response      |
+| `PR_BASE_BRANCH`   | No       | auto-detect | Base branch for `--pr-mode`              |
 
 ### Config Hierarchy (Priority Order)
 
-1. **Environment variable** `GGA_PROVIDER` (highest priority)
+1. **Environment variable** `GGA_PROVIDER`, `GGA_TIMEOUT` (highest priority)
 2. **Project config** `.gga` (in project root)
 3. **Global config** `~/.config/gga/config` (lowest priority)
 
@@ -641,6 +674,9 @@ GGA_PROVIDER="gemini" gga run
 
 # Or export for the session
 export GGA_PROVIDER="ollama:llama3.2"
+
+# Override timeout for a single run
+GGA_TIMEOUT=600 gga run
 ```
 
 ---
@@ -825,7 +861,7 @@ RULES_FILE="AGENTS.md"
 
 ```bash
 # .gga
-PROVIDER="ollama:codellama"
+PROVIDER="lmstudio:codellama"
 FILE_PATTERNS="*.py"
 EXCLUDE_PATTERNS="*_test.py,test_*.py,conftest.py,__pycache__/*"
 RULES_FILE=".coding-standards.md"
@@ -874,7 +910,8 @@ git commit -m "feat: add feature"
     │
     ├──▶ 6. Build prompt: rules + file contents
     │
-    ├──▶ 7. Send to AI provider (claude/gemini/codex/ollama)
+    ├──▶ 7. Send to AI provider (with timeout + progress)
+    │       (claude/gemini/codex/opencode/ollama/lmstudio/github)
     │
     └──▶ 8. Parse response
             │
@@ -1109,14 +1146,11 @@ jobs:
 
       - name: Run AI Review
         run: |
-          # Get changed files in PR
-          git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/changed_files.txt
+          # Review all files changed in the PR
+          gga run --pr-mode
 
-          # Stage them for review
-          cat /tmp/changed_files.txt | xargs git add
-
-          # Run review
-          gga run
+          # Or with diffs only (faster, cheaper)
+          # gga run --pr-mode --diff-only
 ```
 
 #### GitLab CI
@@ -1153,6 +1187,9 @@ which ollama
 
 # Test if the provider works
 echo "Say hello" | claude --print
+
+# For LM Studio, check if the API is accessible
+curl http://localhost:1234/v1/models
 ```
 
 ### "Rules file not found"
@@ -1185,6 +1222,53 @@ The tool sends full file contents. For better performance:
 EXCLUDE_PATTERNS="*.min.js,*.bundle.js,dist/*,build/*,*.generated.ts"
 ```
 
+### GitHub Models setup
+
+```bash
+# 1. Install GitHub CLI
+brew install gh
+
+# 2. Authenticate
+gh auth login
+
+# 3. Configure GGA
+echo 'PROVIDER="github:gpt-4o"' > .gga
+
+# Available models: https://github.com/marketplace/models
+```
+
+### Timeout issues
+
+If reviews are timing out (exit code 124):
+
+```bash
+# Increase timeout (default: 300s)
+TIMEOUT="600"          # In .gga config
+GGA_TIMEOUT=600 gga run  # Or via environment variable
+
+# Review fewer files at once
+EXCLUDE_PATTERNS="*.min.js,*.bundle.js,dist/*"
+```
+
+### LM Studio connection issues
+
+If you get "Failed to connect to LM Studio" errors:
+
+1. Ensure LM Studio is running and the API server is enabled
+2. Check the API port in LM Studio settings (default: 1234)
+3. Verify the host setting:
+   ```bash
+   # Default
+   LMSTUDIO_HOST="http://localhost:1234/v1"
+
+   # Custom port
+   LMSTUDIO_HOST="http://localhost:8080/v1"
+   ```
+4. Test the connection:
+   ```bash
+   curl http://localhost:1234/v1/models
+   ```
+
 ---
 
 ## 🧪 Development
@@ -1194,16 +1278,17 @@ EXCLUDE_PATTERNS="*.min.js,*.bundle.js,dist/*,build/*,*.generated.ts"
 ```
 gentleman-guardian-angel/
 ├── bin/
-│   └── gga                    # Main CLI script
+│   └── gga                          # Main CLI script
 ├── lib/
 │   ├── providers.sh           # AI provider implementations
 │   ├── cache.sh               # Smart caching logic
+│   ├── config.sh              # Configuration management
 │   ├── sqlite.sh              # SQLite persistence + FTS5
 │   ├── embeddings.sh          # Multi-provider embeddings
 │   ├── semantic.sh            # Hybrid semantic search
 │   ├── rag.sh                 # RAG pipeline
 │   ├── hebbiana.sh            # Hebbian memory network
-│   └── config.sh              # Configuration management
+│   └── pr_mode.sh             # PR review mode functions
 ├── spec/                      # ShellSpec test suite
 │   ├── spec_helper.sh         # Test setup and helpers
 │   ├── unit/
@@ -1213,9 +1298,15 @@ gentleman-guardian-angel/
 │   │   ├── semantic_spec.sh   # Semantic search tests
 │   │   ├── rag_spec.sh        # RAG pipeline tests
 │   │   ├── hebbiana_spec.sh   # Hebbian memory tests
-│   │   └── providers_spec.sh  # Provider unit tests
+│   │   ├── providers_spec.sh  # Provider unit tests
+│   │   ├── github_models_spec.sh    # GitHub Models tests
+│   │   ├── pr_mode_spec.sh          # PR mode tests
+│   │   ├── timeout_spec.sh          # Timeout/spinner tests
+│   │   └── status_parsing_spec.sh   # STATUS parsing tests
 │   └── integration/
-│       └── commands_spec.sh   # CLI integration tests
+│       ├── commands_spec.sh         # CLI integration tests
+│       ├── ollama_spec.sh           # Ollama integration (local)
+│       └── github_models_spec.sh    # GitHub Models integration (local)
 ├── Makefile                   # Development commands
 ├── .shellspec                 # Test runner config
 ├── install.sh                 # Manual installer
@@ -1231,12 +1322,12 @@ GGA uses [ShellSpec](https://shellspec.info/) for testing - a BDD-style testing 
 # Install dependencies (once)
 brew install shellspec shellcheck
 
-# Run all tests (68 total)
+# Run all tests
 make test
 
 # Run specific test suites
-make test-unit        # Unit tests only (40 tests)
-make test-integration # Integration tests only (28 tests)
+make test-unit        # Unit tests only
+make test-integration # Integration tests only
 
 # Lint shell scripts with shellcheck
 make lint
@@ -1255,11 +1346,15 @@ make check
 | `semantic.sh`      | 28      | Hybrid search, BM25, vector similarity                  |
 | `rag.sh`           | 22      | Pattern extraction, context building, augmentation      |
 | `hebbiana.sh`      | 35      | Hebbian learning, predictions, memory management        |
-| `providers.sh`     | 49      | All providers, routing, validation, security            |
+| `providers.sh`     | 49+     | All providers, routing, validation, security            |
+| `github_models`    | 16      | GitHub Models provider, API, auth, error handling       |
+| `pr_mode`          | 26      | Base branch detection, PR files, diff, prompt building  |
+| `timeout`          | 19      | Timeout wrapper, spinner, provider routing              |
+| `status_parsing`   | 14      | STATUS: PASSED/FAILED parsing edge cases                |
 | CLI commands       | 34      | init, install, uninstall, run, run --ci, config, cache  |
 | Ollama integration | 12      | Real Ollama tests (local only, requires `qwen2.5:0.5b`) |
 | OpenCode           | 8       | OpenCode provider tests                                 |
-| **Total**          | **367** | Full coverage of core functionality                     |
+| **Total**          | **367+**| Full coverage of core functionality                     |
 
 ### Adding New Tests
 
@@ -1298,7 +1393,27 @@ shellspec spec/unit/my_feature_spec.sh
 - ✅ **refactor**: Deduplicated file filtering logic
 - ✅ **perf**: Hash command caching at module load
 - ✅ **i18n**: All messages now in English
-- ✅ **367 tests** (+206 new tests, +128% coverage)
+- ✅ **367+ tests**
+
+### v2.7.0
+
+- ✅ **feat**: Timeout & progress feedback for AI provider calls (#35, based on PR #20 by @ramarivera)
+  - Configurable `TIMEOUT` (default: 300s) with `GGA_TIMEOUT` env override
+  - Visual spinner in TTY mode, periodic text updates in CI/pipes
+  - Exit code 124 on timeout with troubleshooting suggestions
+  - Generic fallback for unknown/future providers
+  - **19 new tests**
+- ✅ **feat**: GitHub Models provider (#36, based on PR #3 by @Kyonax)
+  - `PROVIDER="github:<model>"` — access GPT-4o, DeepSeek R1, Grok 3, Phi-4, LLaMA, etc.
+  - Auth via `gh auth token` — no extra API keys needed
+  - Uses python3 for safe JSON (no jq dependency)
+  - **16 new tests**
+- ✅ **feat**: PR review mode (#37, based on PR #30 by @Jose-cd)
+  - `--pr-mode`: review all files changed in the full PR range
+  - `--diff-only`: with `--pr-mode`, send only diffs (faster, cheaper)
+  - Auto-detects base branch (main/master/develop) with `PR_BASE_BRANCH` config override
+  - **26 new tests**
+- ✅ **174 tests** total, 0 failures
 
 ### v2.6.1
 
@@ -1393,9 +1508,13 @@ Contributions are welcome! Some ideas:
 - [x] ~~Add test suite~~ ✅ Done in v2.2.0
 - [x] ~~CI mode for GitHub Actions/GitLab~~ ✅ Done in v2.4.0
 - [x] ~~OpenCode provider~~ ✅ Done in v2.5.0 (by @ramarivera)
+- [x] ~~Timeout & progress feedback~~ ✅ Done in v2.7.0 (based on @ramarivera)
+- [x] ~~GitHub Models provider~~ ✅ Done in v2.7.0 (based on @Kyonax)
+- [x] ~~PR review mode~~ ✅ Done in v2.7.0 (based on @Jose-cd)
 - [x] ~~Review history persistence~~ ✅ Done in v2.10.0 (SQLite + FTS5)
 - [x] ~~RAG for context-aware reviews~~ ✅ Done in v2.10.0
 - [x] ~~Predictive analysis~~ ✅ Done in v2.10.0 (Hebbian memory)
+- [ ] Configurable temperature per provider
 - [ ] GitHub Action version
 - [ ] Output formats (JSON, SARIF for IDE integration)
 
